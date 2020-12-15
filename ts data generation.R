@@ -1,0 +1,8 @@
+#generate ARMA(2,1)
+library("TSA")
+simu=arima.sim(n=2000, list(ar = c(0.8, -0.5), ma = c(-0.4)))
+plot(simu)
+acf(simu)
+pacf(simu)
+eacf(simu)
+write.csv(x=simu, file="D:/Onedrive/OneDrive - Oklahoma A and M System/Zhangyue/Code Library/Blockchain for in-situ data/simulation.csv",col.names = FALSE,row.names = FALSE)
