@@ -1,28 +1,48 @@
 # -*- coding: utf-8 -*-
 """
-Blockchain-based G-code protection 
+Blockchain-based G-code protection
 G-code encryption/decryption using RSA
+Inversible Camouflage
 Implement detection on unintended modification
+Data scource: Dr. Tian
 """
 import scipy.io
 import numpy as np
-data = scipy.io.loadmat('D:/Onedrive/OneDrive - Oklahoma A and M System/Zhangyue/Project/Online monitoring using LSTM autoencoder/raw_data_case2.mat')
-
-dat_print_1=data['dat_print_1'][0]
-
-
-
-
-#%%import G-code
 import pandas as pd
-# data = pd.read_csv("C:/Users/zhshi/OneDrive - Oklahoma A and M System/Zhangyue/Code Library/Blockchain for in-situ data/Blockchain-for-in-situ-data/simulation.csv")
-data = pd.read_csv("D:/Onedrive/OneDrive - Oklahoma A and M System/Zhangyue/Code Library/Blockchain for in-situ data/Blockchain-for-in-situ-data/simulation.csv")
 
-# D:\Onedrive\OneDrive - Oklahoma A and M System\Zhangyue
-data=data.round(decimals=2)
-data=data.applymap(str)
+
+
+# data = scipy.io.loadmat('C:/Users/zhshi/OneDrive - Oklahoma A and M System/Zhangyue/Code Library/Blockchain for in-situ data/Blockchain-for-in-situ-data/raw_data_case2.mat')
+data = scipy.io.loadmat('D:/Onedrive/OneDrive - Oklahoma A and M System/Zhangyue/Code Library/Blockchain for in-situ data/Blockchain-for-in-situ-data/raw_data_case2.mat')
+
+#C:\Users\zhshi\OneDrive - Oklahoma A and M System\Zhangyue\Code Library\Blockchain for in-situ data\Blockchain-for-in-situ-data
+dat_print_1=data['dat_print_1'][:,0]
+
+data=[]
+
+window_number=460
+window_size=int(np.shape(dat_print_1)[0]/window_number)
+for i in range(window_number):
+    a=list(dat_print_1[window_size*i:window_size*(i+1)])
+    res = " ".join([str(i) for i in a])
+    data.append(str(res))
+    
+
+
+# #data storage
+# original_example = dat_print_1[0:window_size]
+# import csv
+
+# for i in range(10):
+#     file = open('original data '+ str(i+1)+'.csv', 'w+', newline ='') 
+#     original_example = dat_print_1[window_size*i:window_size*(i+1)]
+#     # writing the data into the file 
+#     with file:     
+#         write = csv.writer(file) 
+#         # write.writerows(camouflage_example)
+#         write.writerows(map(lambda x: [x], original_example))
+
 #%%  RSA_cryptography encryption
-
 
 #Importing necessary modules
 from Crypto.Cipher import PKCS1_OAEP
@@ -59,34 +79,33 @@ import datetime
 start_time=datetime.datetime.now()
 
 #Encrypting the message with the PKCS1_OAEP object
-for i in range(data_encrypted.shape[0]):
+for i in range(len(data_encrypted)):
+    temp=bytes(data[i], 'utf-8')
+    a= cipher.encrypt(temp)
+    data_encrypted[i]=a
+# end_time=datetime.datetime.now()
 
-    temp=bytes(data_encrypted['x'][i], 'utf-8')
-    data_encrypted.at[i,'x'] = cipher.encrypt(temp)
-end_time=datetime.datetime.now()
+# print("running time is")
+# print(end_time-start_time)
 
-print("running time is \n")
-print(end_time-start_time)
-#%%
-# data = pd.read_csv("C:/Users/zhshi/OneDrive - Oklahoma A and M System/Zhangyue/Code Library/Blockchain for in-situ data/Blockchain-for-in-situ-data/simulation.csv")
-data = pd.read_csv("D:/Onedrive/OneDrive - Oklahoma A and M System/Zhangyue/Code Library/Blockchain for in-situ data/Blockchain-for-in-situ-data/simulation.csv")
-data=data.round(decimals=2)
-data=data.applymap(str)
-#%% camouflage data
-# import sys
-# int.from_bytes(data_encrypted.at[i,'x'], byteorder=sys.byteorder)  # => 17
 
+#camouflage data
+import matplotlib.pyplot as plt
 
 import math
 import binascii
+
 def convertToNumber (s):
     return int.from_bytes(s.encode(), 'little')
 
 def convertFromNumber (n):
     return n.to_bytes(math.ceil(n.bit_length() / 8), 'little').decode()
 
+# start_time=datetime.datetime.now()
 # data_mask=binascii.b2a_base64(data_encrypted)
-data_mask=data_encrypted.applymap(binascii.b2a_base64)
+data_mask=pd.DataFrame(data_encrypted)
+data_mask=data_mask.applymap(binascii.b2a_base64)
+data_mask=data_mask.rename(columns={0:'x'})
 # data_mask=data_encrypted.applymap(binascii.b2a_hex)
 for i in range(data_mask.shape[0]):
     # data_mask=data_mask.applymap(str)
@@ -99,8 +118,68 @@ data_camouflage=[]
 for i in range(len(data_mask)):
     data_camouflage.append(list(str(data_mask['x'][i])))
 
-#%% Store in blockchain
+end_time=datetime.datetime.now()
+print("\nrunning time is")
+print(end_time-start_time)
 
+# Output Camouflage Example 
+
+a=str(data_mask['x'][0])
+camouflage_size=8
+camouflage_number=len(a)/camouflage_size
+camouflage_example=[]
+
+for i in range(int(camouflage_number)):
+    camouflage_example.append(a[i*camouflage_size:(i+1)*camouflage_size])
+
+
+camouflage_example = ["0."+i for i in camouflage_example]
+
+
+camouflage_example_revover=[i[2:] for i in camouflage_example]
+
+camouflage_example = [float(i) for i in camouflage_example]
+
+
+import csv
+
+  
+# opening the csv file in 'w+' mode 
+file = open('camouflage data 1.csv', 'w+', newline ='') 
+  
+# writing the data into the file 
+with file:     
+    write = csv.writer(file) 
+    # write.writerows(camouflage_example)
+    write.writerows(map(lambda x: [x], camouflage_example))
+    
+a=str(data_mask['x'][1])
+camouflage_size=8
+camouflage_number=len(a)/camouflage_size
+camouflage_example=[]
+
+for i in range(int(camouflage_number)):
+    camouflage_example.append(a[i*camouflage_size:(i+1)*camouflage_size])
+
+
+camouflage_example = ["0."+i for i in camouflage_example]
+
+
+camouflage_example_revover=[i[2:] for i in camouflage_example]
+
+camouflage_example = [float(i) for i in camouflage_example]
+
+ 
+
+file = open('camouflage data 2.csv', 'w+', newline ='') 
+  
+# writing the data into the file 
+with file:     
+    write = csv.writer(file) 
+    # write.writerows(camouflage_example)
+    write.writerows(map(lambda x: [x], camouflage_example))
+    
+#%% Store in blockchain
 
 import hashlib as hasher
 import tiny_blockchain as block
@@ -108,7 +187,7 @@ import tiny_blockchain as block
 class Block:
     def __init__(self, index, timestamp, data, previous_hash):
         self.index = index
-        self.timestamp = timestamp
+        # self.timestamp = timestamp
         self.data = data
         self.previous_hash = previous_hash
         self.hash = self.hash_block()
@@ -162,7 +241,42 @@ for i in range(0, num_of_blocks_to_add):
       previous_block = block_to_add
       Hash_ori.append(block_to_add.hash)
 
+#%% Unintended modification detect
+Hash_current=[]
+start_time=datetime.datetime.now()
+for i in range(len(blockchain)):
+    blockchain[i].hash=blockchain[i].hash_block()
+    Hash_current.append(blockchain[i].hash)
 
+#Dimension comparison
+if len(Hash_ori)!=len(blockchain):
+    print('Unintended delete/add occurs!')
+#Benchmark comparison
+else:
+    flag=0
+    for i in range(len(Hash_ori)):
+        if Hash_ori[i]==blockchain[i].hash:
+            continue
+        else:
+            flag=1
+            print("Unintended modification occurs at layer ", i+1)
+    if flag==0:
+        print("No unintended modification occurs\n")
+        
+end_time=datetime.datetime.now()       
+print("\nrunning time is")
+print(end_time-start_time)
+
+#%%
+
+blockchain[6].hash = "23afd97b8086f51fc696de6f874c0de2c7c13b6d576b2bfe337915c0977381bb"
+
+#%% Chain detection
+start_time=datetime.datetime.now()
+block.verify(blockchain)
+end_time=datetime.datetime.now()       
+print("\nrunning time is ")
+print(end_time-start_time)
 #%% RSA_cryptography Decryption
 data_decrypted=[]
 start_time=datetime.datetime.now()
@@ -186,35 +300,5 @@ print("\n running time is ")
 print(end_time-start_time)
 
 data_decrypted=pd.DataFrame(data_decrypted,columns=list('x'))
-#%% Unintended modification detect
-Hash_current=[]
-start_time=datetime.datetime.now()
-for i in range(len(blockchain)):
-    blockchain[i].hash=blockchain[i].hash_block()
-    Hash_current.append(blockchain[i].hash)
+data_decrypted=list(data_decrypted['x'])
 
-#Dimension comparison
-if len(Hash_ori)!=len(blockchain):
-    print('Unintended delete/add occurs!')
-#Benchmark comparison
-else:
-    flag=0
-    for i in range(len(Hash_ori)):
-        if Hash_ori[i]==blockchain[i].hash:
-            continue
-        else:
-            flag=1
-            print("Unintended modification occurs at layer ", i+1)
-    if flag==0:
-        print("No unintended modification occurs")
-        
-end_time=datetime.datetime.now()       
-print("running time is")
-print(end_time-start_time)
-
-#%% Chain detection
-start_time=datetime.datetime.now()
-block.verify(blockchain)
-end_time=datetime.datetime.now()       
-print("\n running time is ")
-print(end_time-start_time)
